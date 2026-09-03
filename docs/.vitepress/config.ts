@@ -46,10 +46,7 @@ const sidebar = generateSidebar(
     resolvePath: `/${p.dir}/`,
     includeRootIndexFile: true,
     useTitleFromFrontmatter: true,
-    frontmatterTitleFieldName: 'title',
     sortMenusByFrontmatterOrder: true,
-    frontmatterOrderDefaultValue: 0,
-    excludeByGlobPattern: ['**/README.md'],
     debugPrint: sidebarDebug,
   })),
 )

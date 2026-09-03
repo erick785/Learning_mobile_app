@@ -38,6 +38,9 @@ npm run docs:preview  # 预览构建产物（带 base 路径）
    （已用红→绿实测确认，过程记录在 `specs/2026-09-03-mobile-learning-ebook-plan.md`
    的「实现期发现」小节）。
 
+   **`order` 别漏写**：缺失时插件按默认值 `0` 处理，而块首页「概览」是 `order: 1`，
+   漏写的章节会排到「概览」**前面**去。章节的 `order` 一律从 `10` 起跳就不会撞上。
+
 3. 回到该块的 `index.md`，把规划清单里对应那条**改成指向章节的链接**：
 
    ```markdown
@@ -124,7 +127,7 @@ docs/01-fundamentals/
 
 `docs/.vitepress/config.ts` 里有几处「看起来可以简化、实际会坏」的地方，
 动手前请先读 `specs/2026-09-03-mobile-learning-ebook-plan.md` 末尾的
-**实现期发现**（F1–F5），每条都记录了现象、根因和验证方法。要点：
+**实现期发现**各条，每条都记录了现象、根因和验证方法。要点：
 
 - **不要开 `cleanUrls`**：GitHub Pages 不为 `foo.html` 提供 `/foo` 路由，会全站 404
 - **不要设 `ignoreDeadLinks`**：死链报错是刻意保留的保护，已实测确实生效
