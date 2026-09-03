@@ -1236,3 +1236,80 @@ Task 7 Step 3 曾预留一个 fallback：若 hero actions 与 features 的 `link
 
 **提醒**：不要为了"保险"把这些 link 改成硬编码全路径。当前写法 `link: /01-fundamentals/`
 是正确的，硬编码会在 `base` 变更时（例如改用自定义域名）全站失效。
+
+### F5 — 本地搜索分词：计划给错了配置路径，且函数序列化有运行时陷阱（Task 9）
+
+本条包含三件事，其中第二件会导致**构建全绿但浏览器里搜索完全失效**，务必留意。
+
+**（1）计划 Task 9 Step 3 的配置路径少了一层 `options`，会静默失效**
+
+计划写的是 `search.options.miniSearch.tokenize`，**正确路径是
+`search.options.miniSearch.options.tokenize`**。依据：
+
+- 构建期（`dist/node/chunk-D3CUZ4fa.js`）：
+  `new MiniSearch({ fields, storeFields, ...options.miniSearch?.options })`
+- 客户端（`VPLocalSearchBox.vue`）：
+  `MiniSearch.loadJSON(data, { fields, storeFields, searchOptions: {...}, ...miniSearch?.options })`
+- 类型定义（`types/default-theme.d.ts`）：
+  `miniSearch?: { options?: Pick<MiniSearchOptions, 'extractField'|'tokenize'|'processTerm'|...>, searchOptions?: ... }`
+
+写错层级不会报错，只是分词器根本没生效——索引仍是默认分词。
+
+顺带一个好消息：`miniSearch.options` 在构建期与客户端 `loadJSON` **两处都被展开**，
+所以只配一份 `tokenize` 就同时覆盖索引与查询，不会出现两端分词器不一致。
+
+**（2）themeConfig 里的函数被序列化时不带模块作用域 —— 真正的坑**
+
+VitePress 把 `themeConfig` 内联进每个 HTML 的 `window.__VP_SITE_DATA__`，
+函数用 `_vp-fn_` 前缀转成字符串，客户端这样重建：
+
+```js
+value.startsWith("_vp-fn_") ? new Function(`return ${value.slice(7)}`)() : value
+```
+
+**`new Function` 创建的函数作用域是全局**，只能访问全局变量。所以第一版实现里
+函数体引用的模块级 `const CJK = /[\u3400-\u4dbf...]/` **不会被带走**，
+序列化结果长这样：
+
+```js
+function tokenize(text) { ... if (chars.length < 2 || !CJK.test(word)) ... }  // CJK 未定义
+```
+
+后果：**构建期完全正常**（那时 `CJK` 在模块作用域里，索引也正确生成为二字 token），
+但浏览器里一执行搜索就 `ReferenceError: CJK is not defined`，搜索整体失效。
+构建绿、类型检查绿、`dist` 里索引也对——只有真在浏览器搜一次才会暴露。
+
+修复：把正则**内联进函数体**，让函数完全自包含，并删掉模块级 `CJK` 常量。
+`config.ts` 中已留注释说明此约束，**不要把正则再提取成模块级常量**。
+
+TypeScript 类型注解不受影响：序列化前已被转译掉（产物中是 `function tokenize(text)`、
+`const bigrams = []`，注解均已剥除）。
+
+**（3）Task 9 Step 1 的预设判断偏严，实际缺口比计划设想的小**
+
+计划假设「中文无空格分词 → 搜不到中文」。实测：VitePress 客户端 `searchOptions` 默认带
+`prefix: true` 与 `fuzzy: 0.2`，所以**前缀型片段本来就能命中**：
+
+| 查询 | 改前 | 改后 |
+| --- | --- | --- |
+| 异步编程 / 崩溃监控 / 状态管理 / Keychain / Flutter | 命中 | 命中 |
+| 异步、崩溃、弱网（复合词**前**半段） | 命中（靠 `prefix:true`） | 命中 |
+| 编程、鉴权、签名（复合词**后**半段） | **MISS** | 命中 |
+
+真正缺的只是复合词后半段（`异步编程`→`编程`、`登录鉴权`→`鉴权`、`打包签名`→`签名`）。
+二字滑窗正好补这个洞，且噪音远小于单字切分。
+
+**踩过的测量错误，记录以免重犯**：第一次测查询时用了
+`MiniSearch.loadJSON(json, { fields })` 的**裸默认** searchOptions，没带客户端实际的
+`prefix: true, fuzzy: 0.2`，于是得出「异步、崩溃、弱网 全部 MISS」的错误结论。
+**测量必须复刻被测方的真实配置**，否则会高估问题严重性。
+
+**验证方式**（本次采用，比在浏览器里手点更强）：写一个临时 Node 脚本，
+从 `dist/index.html` 提取 `__VP_SITE_DATA__` 的 JSON 实参 → 复刻客户端
+`deserializeFunctions`（`_vp-fn_` + `new Function`）重建 `tokenize` → 用重建出的函数
+加上真实索引与客户端同款 `searchOptions` 跑 `MiniSearch.loadJSON(...).search(q)`。
+这样同时验证了「函数能否在客户端重建执行」与「端到端能否搜到」，跑完即删。
+
+本次结果：`tokenize("登录鉴权") => ["登录","录鉴","鉴权"]`、
+`tokenize("Flutter UI") => ["Flutter","UI"]`（拉丁词原样保留），
+15 个查询全部命中，`状态管理` 正确命中 `02-client` 与 `03-engineering` 两块。

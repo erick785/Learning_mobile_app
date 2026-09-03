@@ -11,6 +11,30 @@ const parts = [
   { dir: '05-security', title: '安全' },
 ]
 
+// minisearch 默认按空白与标点分词，中文没有空格，整段会被当成单个 token。
+// 客户端默认 prefix:true 能让「异步」命中「异步编程」，但复合词后半段（编程、
+// 鉴权、签名）够不着。二字滑窗补齐这类查询，纯拉丁词原样保留不影响英文搜索。
+//
+// 此函数会被 VitePress 以 _vp-fn_ 机制序列化后送到客户端，**只带走函数体本身**，
+// 不会带上模块作用域。因此函数内不得引用任何外部变量（含模块级 const），
+// 否则构建期正常、浏览器里一搜索就抛 ReferenceError。正则必须内联。
+function tokenize(text: string): string[] {
+  return text
+    .split(/[\n\r\p{Z}\p{P}]+/u)
+    .filter(Boolean)
+    .flatMap((word) => {
+      const chars = [...word]
+      if (chars.length < 2 || !/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(word)) {
+        return [word]
+      }
+      const bigrams: string[] = []
+      for (let i = 0; i < chars.length - 1; i++) {
+        bigrams.push(chars[i] + chars[i + 1])
+      }
+      return bigrams
+    })
+}
+
 // debugPrint 会打印生成的侧边栏结构，仅在排查侧边栏问题时临时开启
 const sidebarDebug = false
 
@@ -49,7 +73,16 @@ export default defineConfig({
       },
     ],
     sidebar,
-    search: { provider: 'local' },
+    search: {
+      provider: 'local',
+      options: {
+        // 必须是 miniSearch.options.tokenize：构建期与客户端 loadJSON 都展开这一层。
+        // 写成 miniSearch.tokenize 会被静默忽略。
+        miniSearch: {
+          options: { tokenize },
+        },
+      },
+    },
     outline: { level: [2, 3], label: '本页目录' },
     docFooter: { prev: '上一篇', next: '下一篇' },
     lastUpdated: { text: '更新于' },
