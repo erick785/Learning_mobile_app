@@ -1,0 +1,16 @@
+{
+  "name": "learning-mobile-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "移动端开发学习笔记电子书",
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "vitepress": "1.6.4",
+    "vitepress-sidebar": "1.39.0"
+  }
+}
