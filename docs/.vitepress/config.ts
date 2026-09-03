@@ -11,8 +11,8 @@ const parts = [
   { dir: '05-security', title: '安全' },
 ]
 
-// debugPrint 仅在 Task 4/5 验证期间开启，Task 5 结束时必须改回 false
-const sidebarDebug = true
+// debugPrint 会打印生成的侧边栏结构，仅在排查侧边栏问题时临时开启
+const sidebarDebug = false
 
 const sidebar = generateSidebar(
   parts.map((p) => ({
