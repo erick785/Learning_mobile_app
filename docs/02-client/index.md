@@ -11,20 +11,20 @@ order: 1
 
 ### Flutter
 
-- [ ] UI
-- [ ] 状态管理
-- [ ] 路由
-- [ ] 动画
-- [ ] 插件
+- UI
+- 状态管理
+- 路由
+- 动画
+- 插件
 
 ### 原生补充
 
-- [ ] Android：Kotlin / Jetpack
-- [ ] iOS：Swift / SwiftUI
+- Android：Kotlin / Jetpack
+- iOS：Swift / SwiftUI
 
 ### 系统能力
 
-- [ ] 本地存储
-- [ ] 登录鉴权
-- [ ] 推送通知
-- [ ] 文件 / 相机 / 定位
+- 本地存储
+- 登录鉴权
+- 推送通知
+- 文件 / 相机 / 定位

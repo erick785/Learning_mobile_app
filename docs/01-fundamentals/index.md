@@ -9,13 +9,13 @@ order: 1
 
 ## 规划
 
-- [ ] Dart（Flutter）
-- [ ] Kotlin（Android）
-- [ ] Swift（iOS）
-- [ ] Git
-- [ ] 命令行
-- [ ] HTTP / JSON
-- [ ] REST API
-- [ ] 数据结构
-- [ ] 异步编程
-- [ ] 网络与安全基础
+- Dart（Flutter）
+- Kotlin（Android）
+- Swift（iOS）
+- Git
+- 命令行
+- HTTP / JSON
+- REST API
+- 数据结构
+- 异步编程
+- 网络与安全基础

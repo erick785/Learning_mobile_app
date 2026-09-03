@@ -1181,3 +1181,42 @@ npm run docs:build            # debugPrint 输出应含 5 个独立 key
 npm run docs:preview          # 浏览器打开 /Learning_mobile_app/01-fundamentals/
                               # 侧边栏应只有本块的「概览」，href 含完整 base 前缀
 ```
+
+### F3 — 规划清单不能用 `- [ ]` 复选框语法（Task 4 浏览器实测发现）
+
+**现象**：Task 4 Step 4 用浏览器打开块首页，规划清单渲染成纯文本
+`[ ] Dart（Flutter）`，方括号是字面字符，不是复选框。构建产物中确认为
+`<li>[ ] Dart（Flutter）</li>`。
+
+**根因**：VitePress 1.6.4 **不打包** markdown-it 的 task list 支持。在
+`node_modules/vitepress/dist/` 下对 `task-list` / `taskList` / `task_list` 全量 grep
+**零命中**。这是框架能力缺失，不是配置漏项。
+
+**为什么不加插件**：`markdown-it-task-lists` 之类插件渲染出的是
+`<input type="checkbox" disabled>`，永远点不动，纯装饰——「勾掉」无论如何都得改
+markdown 源文件。为一个不可交互的外观多引一个第三方依赖不划算，且「长得像复选框
+但点不动」正属于应当避免的半吊子状态。
+
+**已采用的方案**（经用户确认）：普通无序列表，**链接即已完成、纯文本即待写**。
+
+```markdown
+## 规划
+
+- Dart（Flutter）                              ← 待写
+- [异步编程](./async-programming.md)            ← 已写完
+```
+
+进度不需要图例就能看出来，且完成后自然形成到章节的入口。
+
+**⚠️ 计划 Task 3 Step 1–5 的五个代码块格式已作废**：其中的 `- [ ] ` 前缀需全部去掉，
+改为 `- `。若日后照 Task 3 原文重建这五个文件，会重现本缺陷。条目文字、顺序、
+`###` 分组结构均不变，**只去掉 `- [ ] ` 前缀**（共 45 处：10 / 11 / 9 / 9 / 6）。
+
+设计文档中「以 checkbox 形式呈现，写完一篇勾掉一篇」的表述已同步修正。
+
+**验证方式**：
+
+```bash
+npm run docs:build
+grep -c '\[ \]' docs/.vitepress/dist/*/index.html   # 各文件应为 0
+```
