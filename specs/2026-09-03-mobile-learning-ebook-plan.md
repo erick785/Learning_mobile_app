@@ -1220,3 +1220,19 @@ markdown 源文件。为一个不可交互的外观多引一个第三方依赖�
 npm run docs:build
 grep -c '\[ \]' docs/.vitepress/dist/*/index.html   # 各文件应为 0
 ```
+
+### F4 — frontmatter 里的 hero/features 链接会自动套 base（已确证的非问题）
+
+Task 7 Step 3 曾预留一个 fallback：若 hero actions 与 features 的 `link` 未被 base
+处理，就把它们改写成硬编码全路径 `/Learning_mobile_app/01-fundamentals/`。
+
+**实测结论：不需要，fallback 作废。** 浏览器快照确认渲染出的 href 已含完整前缀：
+
+- hero action「开始阅读」→ `/Learning_mobile_app/01-fundamentals/`
+- 五张 feature 卡 → `/Learning_mobile_app/<各块>/`
+- 外部链接（GitHub）保持原样，未被套 base
+
+配合 `curl` 对六个路由全部返回 200，以及控制台无任何报错，跳转成立。
+
+**提醒**：不要为了"保险"把这些 link 改成硬编码全路径。当前写法 `link: /01-fundamentals/`
+是正确的，硬编码会在 `base` 变更时（例如改用自定义域名）全站失效。
