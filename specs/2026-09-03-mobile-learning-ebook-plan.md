@@ -1134,3 +1134,50 @@ git ls-files docs/.vitepress/                         # 应列出 config.ts
 
 **对后续维护的提醒**：把 `**/` 前缀"改回"`docs/` 前缀看似无害，实则会在根目录误跑
 vitepress 时重新暴露污染。`.gitignore` 中已留注释说明，勿删。
+
+### F2 — 多侧边栏的外层 key 取自 `resolvePath`，不是 `basePath`（Task 4 实测发现）
+
+**现象**：按 Task 4 原计划只设 `basePath: '/<dir>/'`，`debugPrint` 输出的结构是：
+
+```json
+{ "/": { "base": "/05-security/", "items": [{ "text": "概览", "link": "index.md" }] } }
+```
+
+**只有一个 key `"/"`，不是五个**。五块的配置全部塌缩到同一个 key 上互相覆盖，
+只有数组里最后一项 `05-security` 存活。若直接部署，前四块没有侧边栏，
+且 `05-security` 的侧边栏会因为 key 是 `"/"` 而在全站生效。
+
+**根因**（`node_modules/vitepress-sidebar/dist/sidebar.js`，压缩代码中可辨识）：
+
+```js
+result[M.resolvePath || "/"] = { base: M.basePath || M.resolvePath || "/", items: [...] }
+```
+
+外层 key 取 `resolvePath`，`basePath` 只决定内层的 `base`（链接前缀）。
+计划把两者的职责搞反了。
+
+**修复**：每个选项对象同时设 `resolvePath` 与 `basePath` 为 `/<dir>/`。修复后
+`debugPrint` 输出五个独立 key，每块 `items[0].text` 均为「概览」。
+
+**顺带确证了设计阶段的不确定点**：`includeRootIndexFile: true` 确实能让块根目录的
+`index.md` 进入自身侧边栏，且标题取自 frontmatter 的 `title`。
+
+**计划 Step 3 第三条预期是错的，勿照它"修"**：计划要求 `link` 形如 `/01-fundamentals/`，
+实际插件产出的是相对的 `"index.md"`，**这是正确的**。VitePress 的
+`theme-default/support/sidebar.js` 中 `addBase()` 会把内层 `base` 前置拼到 `link` 上：
+
+```js
+const base = item.base || _base
+if (base && item.link) item.link = base + item.link
+```
+
+得到 `/01-fundamentals/index.md`，再经 `normalizeLink()` 转成 `.html` 并套站点 `base`，
+最终 href 为 `/Learning_mobile_app/01-fundamentals/index.html`。已在浏览器实测确认。
+
+**验证方式**：
+
+```bash
+npm run docs:build            # debugPrint 输出应含 5 个独立 key
+npm run docs:preview          # 浏览器打开 /Learning_mobile_app/01-fundamentals/
+                              # 侧边栏应只有本块的「概览」，href 含完整 base 前缀
+```
