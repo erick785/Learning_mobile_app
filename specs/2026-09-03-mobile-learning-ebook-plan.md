@@ -1313,3 +1313,36 @@ TypeScript 类型注解不受影响：序列化前已被转译掉（产物中是
 本次结果：`tokenize("登录鉴权") => ["登录","录鉴","鉴权"]`、
 `tokenize("Flutter UI") => ["Flutter","UI"]`（拉丁词原样保留），
 15 个查询全部命中，`状态管理` 正确命中 `02-client` 与 `03-engineering` 两块。
+
+### F6 — `npm ci` 的 allow-scripts 警告属无害（Task 11 本地预演观察）
+
+Task 11 Step 3 在本地清空 `node_modules` 后跑 `npm ci` 预演 CI，退出码 0、
+`package-lock.json` 未被改动（说明锁文件与 `package.json` 严格同步），但 npm 11.16.0
+打出警告：
+
+```
+npm warn allow-scripts   esbuild@0.21.5 (postinstall: node install.js)
+npm warn allow-scripts   fsevents@2.3.3 (install: (install scripts present))
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, ...
+```
+
+npm 11 默认拦截依赖的安装脚本。`esbuild` 的 postinstall 看起来关键（负责平台二进制），
+但**实测构建照常成功**：
+
+```bash
+npm run docs:build        # exit 0, build complete
+ls node_modules/@esbuild/ # darwin-arm64
+node -p "require('esbuild').version"   # 0.21.5
+```
+
+原因：esbuild 0.21.5 通过 **optionalDependencies**（`@esbuild/darwin-arm64`、
+`@esbuild/linux-x64` 等）分发平台二进制，postinstall 只做校验与链接，被拦不影响。
+`fsevents` 仅用于 macOS 文件监听，CI 是 ubuntu，本就不需要。
+
+**结论：不需要执行 `npm approve-scripts`，也不要在 workflow 里加绕过脚本拦截的参数。**
+
+**万一 CI 上构建真的失败**且报 esbuild 相关错误，排查顺序：
+1. `actions/setup-node@v7` 装的 npm 版本是否引入了更严格的脚本策略
+2. `npm ci` 步骤的完整日志里有没有 optional dependencies 被跳过的提示
+   （例如 `--no-optional`、`omit=optional` 之类配置）
+3. 确认 `package-lock.json` 中 `@esbuild/linux-x64` 条目存在且 `optional: true`
