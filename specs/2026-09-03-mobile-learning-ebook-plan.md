@@ -1099,4 +1099,38 @@ Expected: `git status` 无输出；`git log` 显示 Task 1–11 的提交（Task
 - Task 9 中文搜索的实际表现，以及是否启用了按字切分 tokenizer
 - 任何与本计划「Expected」不符的观测结果
 
-（实现前为空）
+### F1 — `.gitignore` 未覆盖根目录 `.vitepress/`（Task 2 期间发现并修正）
+
+**现象**：Task 1 执行期间有进程在仓库根目录误跑过 vitepress，产生 `.vitepress/cache/deps_temp_*`。
+计划 Task 1 Step 2 给定的 `.gitignore` 只写了 `docs/.vitepress/cache/` 与 `docs/.vitepress/dist/`，
+挡不住根目录那份，导致 `git status` 被污染，Task 2 实现者顺手删掉了它。
+
+该删除经核实是安全的：`git log --all -- .vitepress` 为空，该路径从未被 git 跟踪；
+`git log --all --diff-filter=D --name-only` 全历史为空，仓库从未删除过任何受版本控制的文件。
+
+**第一次修复尝试是错的，记录在此以免重犯**：把 `docs/.vitepress/cache/` 直接改成
+`.vitepress/cache/`，以为这样"更宽"。实际按 gitignore 规则，**模式若以分隔符开头或中间含分隔符，
+会被锚定到该 `.gitignore` 所在目录**，所以 `.vitepress/cache/` 只匹配根目录那份，
+`docs/.vitepress/dist/` 反而不再被忽略——`git status` 立刻冒出 `?? docs/.vitepress/dist/`。
+
+**最终写法**：用 `**/` 前缀显式表达"任意深度"。
+
+```
+**/.vitepress/cache/
+**/.vitepress/dist/
+```
+
+**注意不可简化为 `**/.vitepress/`**：那会把 `docs/.vitepress/config.ts` 一起忽略掉，
+而 config.ts 必须入库。只能忽略 `cache` 与 `dist` 两个子路径。
+
+**验证方式**（四条断言，全部 PASS）：
+
+```bash
+git check-ignore -v docs/.vitepress/dist              # 应命中 **/.vitepress/dist/
+mkdir -p .vitepress/cache/probe && git check-ignore -v .vitepress/cache/probe && rm -rf .vitepress
+git check-ignore -v docs/.vitepress/config.ts         # 应无输出、退出码 1
+git ls-files docs/.vitepress/                         # 应列出 config.ts
+```
+
+**对后续维护的提醒**：把 `**/` 前缀"改回"`docs/` 前缀看似无害，实则会在根目录误跑
+vitepress 时重新暴露污染。`.gitignore` 中已留注释说明，勿删。

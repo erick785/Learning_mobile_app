@@ -1,5 +1,7 @@
 node_modules/
-docs/.vitepress/cache/
-docs/.vitepress/dist/
+# **/ 前缀使其在任意深度匹配：docs/.vitepress/ 与根目录误跑 vitepress 产生的 .vitepress/ 都要挡住。
+# 只忽略 cache 与 dist，不可忽略整个 .vitepress/ —— 其中的 config.ts 必须入库。
+**/.vitepress/cache/
+**/.vitepress/dist/
 *.log
 .DS_Store
