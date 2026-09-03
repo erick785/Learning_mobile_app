@@ -1346,3 +1346,72 @@ node -p "require('esbuild').version"   # 0.21.5
 2. `npm ci` 步骤的完整日志里有没有 optional dependencies 被跳过的提示
    （例如 `--no-optional`、`omit=optional` 之类配置）
 3. 确认 `package-lock.json` 中 `@esbuild/linux-x64` 条目存在且 `optional: true`
+
+### F7 — 终审后的三项修正：计划 Task 3 / Task 4 的代码块已作废
+
+整体终审（覆盖 `5af053b..c15345e` 全部提交）查出若干跨任务不一致，已修正如下。
+**计划正文中对应的代码块保持原样未改**，以本条为准。
+
+**（1）Task 4 Step 1 的侧边栏选项代码块已作废**
+
+删掉了三个不产生任何效果的键：
+
+| 删除的键 | 为什么是空转 |
+| --- | --- |
+| `frontmatterTitleFieldName: 'title'` | 与插件默认值相同（源码 `frontmatterTitleFieldName \|\| "title"`） |
+| `frontmatterOrderDefaultValue: 0` | 与插件默认值相同（源码 `frontmatterOrderDefaultValue ?? 0`） |
+| `excludeByGlobPattern: ['**/README.md']` | `docs/` 下不存在任何 `README.md`（仓库根的 README 刻意放在 srcDir 之外），永不触发 |
+
+随后又删掉同类的 `debugPrint: sidebarDebug` 与 `const sidebarDebug = false`：
+硬编码 `false` 与插件默认一致，行为上等同于两行都不写。排障指引改为
+`generateSidebar` 调用处的一行注释。
+
+**验证**：删除后重新构建，从 `dist/index.html` 的 `__VP_SITE_DATA__` 提取
+`themeConfig.sidebar`，与删除前的结构**逐字节一致**——反证这些键确为空转。
+
+**（2）Task 3 Step 1–5 的 frontmatter 已作废：`title` 从「概览」改为块名**
+
+原设计用 `title: 概览` 只为设定侧边栏标签，但 VitePress 的 frontmatter `title`
+**同时决定浏览器标题**（`createTitle(siteData, pageData)` 取
+`pageData.title || siteData.title`）。后果：五个块页的 `<title>` 全部是
+「概览 | 移动端开发学习笔记」，浏览器标签、书签、历史记录无法区分，
+**分享出去的链接预览也只显示「概览」**——与本书「以网页阅读/分享为主」的定位直接冲突。
+
+改为各块块名（基础 / 客户端开发 / 工程化 / 测试 / 安全）后：
+
+- 页面标题变为「基础 | 移动端开发学习笔记」等，五块各不相同
+- 侧边栏首项也顺带从五个雷同的「概览」变成各自块名，反而更清晰
+- **零配置改动**：`useTitleFromFrontmatter` 照旧生效，`order: 1` 不变
+
+曾考虑过的两个替代方案都不如它：加 `titleTemplate: ':title · 基础'` 会丢掉站点名；
+改用 `useTitleFromFileHeading` 需动配置且效果相同。
+
+**（3）`outline.level: [2,3]` 看着像重复默认值，实际不可删**
+
+`vitepress/dist/node/index.d.ts` 把它标为 `@default [2,3]`，很容易在下一轮
+「清理重复默认值」时被误删。但那两个 `@default` 属于 `HeadersPluginOptions` 与
+`TocPluginOptions`（markdown-it 插件），**不是** `themeConfig.outline`。
+客户端真实回退路径是 `resolveHeaders` 里的 `(... ? range.level : range) || 2` → `[2,2]`。
+
+实测执行 shipped 的 `outline.js`：
+
+- `outline: { label: '本页目录' }`（无 level）→ 只得 `["规划"]`
+- `outline: { level: [2,3], label: '本页目录' }` → 得 `["规划","Flutter"]`
+
+即删掉 `level` 会**静默丢失所有三级标题**，当前受影响的是 `02-client`
+（Flutter / 原生补充 / 系统能力）与 `04-testing`（按层级 / 按环境 / 专项）。
+`config.ts` 中已留注释说明，勿删。
+
+**（4）其余终审发现的处理**
+
+- 设计文档中 `layout: hero` 是不存在的值（主题只识别 `home`/`page`/`doc`，
+  写错会静默回退到 `doc` 布局并丢掉 hero 与全部 feature 卡片），已改为 `layout: home`
+- 设计文档中 `.gitignore` 仍写着 F1 证明有害的 `docs/` 前缀，已同步为 `**/` 前缀
+- README 的「改配置前先看这里」原本漏了 F2 的 `resolvePath` 要求
+  （回归后前四块侧边栏静默消失、构建不报错，是影响最大的一条），已补上
+- 计划 Task 1 Step 4 的验证命令 `node -p "require('vitepress-sidebar/package.json').version"`
+  **实际不可用**：该包 `exports` 只暴露 `"."` 与 `"./types"`，会抛
+  `ERR_PACKAGE_PATH_NOT_EXPORTED`。当时改用直接读 `node_modules/vitepress-sidebar/package.json`
+  完成验证。日后复用该命令请换成 `fs.readFileSync`
+- 计划 Task 4 Step 4、Task 10 Step 1、Task 12 Step 3 中残留的「checkbox 正常渲染」
+  「勾掉」等表述，随 F3 一并作废，以 F3 与本条为准

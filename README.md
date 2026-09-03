@@ -129,6 +129,9 @@ docs/01-fundamentals/
 动手前请先读 `specs/2026-09-03-mobile-learning-ebook-plan.md` 末尾的
 **实现期发现**各条，每条都记录了现象、根因和验证方法。要点：
 
+- **多侧边栏必须同时设 `resolvePath` 与 `basePath`**：插件用 `resolvePath` 作多侧边栏
+  的外层 key，`basePath` 只决定内层链接前缀。只设 `basePath` 会让五块塌缩成同一个
+  key `"/"` 互相覆盖——**前四块侧边栏静默消失、构建不报错**，是最难察觉的回归
 - **不要开 `cleanUrls`**：GitHub Pages 不为 `foo.html` 提供 `/foo` 路由，会全站 404
 - **不要设 `ignoreDeadLinks`**：死链报错是刻意保留的保护，已实测确实生效
 - **`tokenize` 函数必须自包含**：VitePress 用 `_vp-fn_` 序列化它、客户端用

@@ -107,8 +107,12 @@ Learning_mobile_app/
       └─ index.md
 ```
 
-**`.gitignore` 需包含**：`node_modules/`、`docs/.vitepress/cache/`、
-`docs/.vitepress/dist/`。目录树中标注 gitignore 的两项即指此。
+**`.gitignore` 需包含**：`node_modules/`、`**/.vitepress/cache/`、
+`**/.vitepress/dist/`。目录树中标注 gitignore 的两项即指此。
+
+用 `**/` 前缀而非 `docs/` 前缀：需匹配任意深度，根目录误跑 vitepress 也会产生
+`.vitepress/cache`。且**不可简化为 `**/.vitepress/`**，那会连带忽略必须入库的
+`config.ts`。详见实现计划「实现期发现」F1。
 
 `specs/` 与 `docs/` 物理隔离：默认约定是把设计文档放在 `docs/superpowers/specs/`，
 但 `docs/` 正是 VitePress 的 srcDir，放进去会被当作书页构建进站点。
@@ -191,7 +195,10 @@ task list 插件，渲染出的也是 `disabled` 的 input，永远点不动，�
 
 ## 首页
 
-`docs/index.md` 用 VitePress 的 `layout: hero`，内容保持克制：
+`docs/index.md` 用 **`layout: home`**（VitePress 主题只识别 `home` / `page` / `doc`，
+**没有 `hero` 这个值**——写成 `layout: hero` 会回退到 `doc` 布局，静默丢掉 hero 区与
+全部 feature 卡片）。hero 与 features 作为 frontmatter 字段写在 `layout: home` 之下。
+内容保持克制：
 
 - **hero**：书名 + 一句话副标题，说明这是一本按主题组织的移动端开发学习笔记
 - **features 卡片**：五张，分别指向五大块的 `index.md`，卡片文案用该块的一句话定位
@@ -206,8 +213,12 @@ task list 插件，渲染出的也是 `disabled` 的 input，永远点不动，�
 - **`sidebar`（左侧）自动生成**：按 5 个路径前缀分别生成，使「测试」块内只显示
   测试章节，不混入其他四块。
 - **块首页在自身侧边栏中的位置**：每个块的 `index.md` 作为该块侧边栏的第一项，
-  frontmatter 设 `order: 1`、`title: 概览`，让规划清单随时可达。
-  该行为需在实现阶段实测确认（插件是否把 sidebar 根目录的 `index.md` 纳入列表）。
+  frontmatter 设 `order: 1`。**实现阶段已确证**：需显式开启插件的
+  `includeRootIndexFile`（默认 `false`），否则块首页不会进入自己的侧边栏。
+- **块首页的 `title` 用块名，不用「概览」**：VitePress 的 frontmatter `title`
+  同时决定浏览器标题与侧边栏标签。五块都写「概览」会让页面标题全部相同，
+  分享出去的链接预览无法区分是哪一块——与本书「以分享为主」的定位冲突。
+  改用块名后标题为「基础 | 移动端开发学习笔记」，侧边栏首项也各不相同。
 - **折叠类选项不适用**：`collapsed` 与 `collapseDepth` 只对嵌套文件夹生效，
   本设计五大块内部扁平，故不配置这两项。此处记录是为了避免后续有人看到选项
   列表却找不到对应配置时产生困惑。

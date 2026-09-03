@@ -35,9 +35,7 @@ function tokenize(text: string): string[] {
     })
 }
 
-// debugPrint 会打印生成的侧边栏结构，仅在排查侧边栏问题时临时开启
-const sidebarDebug = false
-
+// 排查侧边栏问题时，给下面的选项对象临时加 debugPrint: true 会打印生成结构
 const sidebar = generateSidebar(
   parts.map((p) => ({
     documentRootPath: '/docs',
@@ -47,7 +45,6 @@ const sidebar = generateSidebar(
     includeRootIndexFile: true,
     useTitleFromFrontmatter: true,
     sortMenusByFrontmatterOrder: true,
-    debugPrint: sidebarDebug,
   })),
 )
 
@@ -80,6 +77,8 @@ export default defineConfig({
         },
       },
     },
+    // level 不可删：类型文档标的 @default [2,3] 属于 markdown-it 插件选项，
+    // themeConfig.outline 的真实回退是 [2,2]，删掉会静默丢失所有三级标题。
     outline: { level: [2, 3], label: '本页目录' },
     docFooter: { prev: '上一篇', next: '下一篇' },
     lastUpdated: { text: '更新于' },
