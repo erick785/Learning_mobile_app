@@ -44,6 +44,8 @@ const sidebar = generateSidebar(
     resolvePath: `/${p.dir}/`,
     includeRootIndexFile: true,
     useTitleFromFrontmatter: true,
+    useFolderTitleFromIndexFile: true,
+    useFolderLinkFromIndexFile: true,
     sortMenusByFrontmatterOrder: true,
   })),
 )
