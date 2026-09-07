@@ -121,7 +121,26 @@ docs/01-fundamentals/
 `specs/` 刻意放在 `docs/` 之外：`docs/` 是 VitePress srcDir，
 元文档放进去会被当成书页构建进站点。
 
-五大块内部**保持扁平、不嵌套子目录**。触发引入嵌套的阈值：单块章节数超过约 20 篇。
+块内**默认扁平**；当一章需要多个子页时，把它变成同名文件夹，文件夹可以再套文件夹
+（三层嵌套已实测可用）：
+
+```
+docs/04-testing/devices-and-emulators/     ← 章节文件夹，与章同名
+├─ index.md                                ← 原章节页移入，保留 frontmatter
+├─ android-emulator/
+│  ├─ index.md                             ← 子文件夹也靠 index.md 提供标题与链接
+│  └─ installation.md                      ← 孙页
+└─ ios-simulator/
+   └─ index.md
+```
+
+侧边栏会把每层文件夹渲染成分组，标题、链接、排序全部自动取该文件夹 `index.md`
+的 frontmatter（`config.ts` 已全局开启 `useFolderTitleFromIndexFile` 与
+`useFolderLinkFromIndexFile`，新开文件夹无需再改配置）。深层分组不会被注入
+`collapsed` 状态，渲染为始终展开。
+
+别用「同名文件 + 同名文件夹」的写法（`foo.md` 与 `foo/` 并存）——那样文件夹
+标题会显示英文目录名、且排序会跑到最前面，两个坑都已实测确认过。
 
 ## 改配置前先看这里
 

@@ -1415,3 +1415,81 @@ node -p "require('esbuild').version"   # 0.21.5
   完成验证。日后复用该命令请换成 `fs.readFileSync`
 - 计划 Task 4 Step 4、Task 10 Step 1、Task 12 Step 3 中残留的「checkbox 正常渲染」
   「勾掉」等表述，随 F3 一并作废，以 F3 与本条为准
+
+### F8 — 嵌套文件夹机制已实测解决；「块内扁平」不再是硬约束
+
+设计文档把「五大块内部扁平」写成了**刻意规避不确定性的设计决策**——当时
+`vitepress-sidebar` 对文件夹的排序与标题机制无法从文档确证。第一个真实用例
+（「真机与模拟器」章节需要「安装」子页）落地时做了探针验证，结论如下。
+
+**坏写法（实测，勿用）：同名文件 + 同名文件夹**
+
+```
+04-testing/
+├─ devices-and-emulators.md        ← 章节页
+└─ devices-and-emulators/
+   └─ installation.md
+```
+
+生成的侧边栏结构：
+
+```json
+{ "text": "devices-and-emulators",   ← 文件夹标题是英文 slug，没有 frontmatter 可读
+  "items": [ { "text": "安装", "link": "devices-and-emulators/installation" } ] }
+```
+
+两个问题：文件夹标题直接用了目录名（英文），且文件夹的 `order` 缺省为 0，
+插到了「测试」（order 1）和「真机与模拟器」（order 10）**前面**。
+
+**正确写法（实测通过）：文件夹 + `index.md` + 两个选项**
+
+```
+04-testing/
+└─ devices-and-emulators/
+   ├─ index.md             ← 原章节页原样移入（frontmatter 不变：title、order 保留）
+   └─ installation.md      ← 子页
+```
+
+`config.ts` 中新增两个选项（现已为常驻配置）：
+
+```ts
+useFolderTitleFromIndexFile: true,   // 文件夹标题读 index.md 的 title
+useFolderLinkFromIndexFile: true,    // 文件夹可点击，链接到 index.md
+```
+
+生成的侧边栏结构（符合预期）：
+
+```json
+{ "text": "真机与模拟器", "link": "devices-and-emulators/index.md",
+  "items": [ { "text": "安装", "link": "devices-and-emulators/installation" } ] }
+```
+
+**结论**：文件夹的标题、链接、排序**都能从其 `index.md` 的 frontmatter 读取**
+（排序沿用了 `sortMenusByFrontmatterOrder`，文件夹的 order 即 `index.md` 的 order）。
+设计文档相应章节已更新，README 的「保持扁平、不嵌套」表述已改为新的文件夹约定。
+
+**副作用**：章节 URL 从 `/04-testing/devices-and-emulators.html` 变为
+`/04-testing/devices-and-emulators/`。站点尚未公开部署，无断链影响；
+日后若把已有章节改造为文件夹，需注意外部链接的失效。
+
+**注意**：`useFolderTitleFromIndexFile` 与 `useFolderLinkFromIndexFile` 不是死配置。
+它们只在存在嵌套文件夹时生效，但「块内扁平」已不再是硬约束、文件夹随时可能出现，
+删掉它们会让下一个文件夹退回坏写法。README「改配置前先看这里」已收录此条。
+
+**追加：三层嵌套已实测通过。** 实际落地结构为
+`devices-and-emulators/`（真机与模拟器）→ `android-emulator/`、`ios-simulator/` →
+`android-emulator/installation.md`（安装）。生成的侧边栏：
+
+```json
+{ "text": "真机与模拟器", "link": "devices-and-emulators/index.md", "items": [
+  { "text": "Android 模拟器", "link": "devices-and-emulators/android-emulator/index.md",
+    "items": [ { "text": "安装", "link": "devices-and-emulators/android-emulator/installation" } ] },
+  { "text": "iOS 模拟器", "link": "devices-and-emulators/ios-simulator/index.md" } ] }
+```
+
+每层文件夹的标题、链接、排序都正确取自**各自** `index.md` 的 frontmatter
+（Android order 10 排在 iOS order 20 之前）。产物中没有任何节点带 `collapsed` 字段——
+插件的 `collapseDepth` 实际生效值是 1，但并未因此给深层分组注入折叠状态，
+VitePress 侧 `collapsible` 仅在 `collapsed != null` 时为真，故三层分组渲染为
+**始终展开、无折叠按钮**。这个结果对三层结构是可接受的；若日后嵌套更深、
+希望深层默认收起，再显式设置 `collapsed` / `collapseDepth` 并重新实测。
