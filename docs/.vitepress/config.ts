@@ -56,6 +56,8 @@ export default defineConfig({
   title: '移动端开发学习笔记',
   description: '按主题组织的移动端开发手册：基础、客户端开发、工程化、测试、安全',
   lastUpdated: true,
+  // 默认深色（霓虹主题配套），读者仍可用导航栏按钮切浅色；删 theme/ 目录时一并删掉本行
+  appearance: 'dark',
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }],
   ],

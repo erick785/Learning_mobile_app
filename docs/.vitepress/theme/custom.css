@@ -1,0 +1,63 @@
+/* 科技感主题：青/电光蓝霓虹 + 深蓝黑底（GitHub Dark 色系，不用纯黑，长文阅读不累）。
+   只覆盖 CSS 变量与少量类样式，不碰默认主题结构；
+   删掉 theme/ 目录并移除 config.ts 的 appearance 即完全回退。 */
+
+/* ===== 浅色模式：只换品牌色为深青（亮青在浅底上看不清），其余保持默认 ===== */
+:root {
+  --vp-c-brand-1: #0891b2;
+  --vp-c-brand-2: #0e7490;
+  --vp-c-brand-3: #155e75;
+  --vp-c-brand-soft: rgba(8, 145, 178, 0.14);
+
+  /* 本地装了 JetBrains Mono 才生效，否则回退系统等宽；不发外部请求 */
+  --vp-font-family-mono: 'JetBrains Mono', ui-monospace, 'Menlo', 'Monaco',
+    'Consolas', 'Liberation Mono', 'Courier New', monospace;
+
+  /* hero 渐变标题：组件已对 .name 应用 background-clip: text，给变量即生效 */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #22d3ee, #3b82f6 70%);
+}
+
+/* ===== 深色模式（默认）：霓虹青 + 深蓝黑 ===== */
+.dark {
+  --vp-c-brand-1: #67e8f9;
+  --vp-c-brand-2: #22d3ee;
+  --vp-c-brand-3: #0891b2;
+  --vp-c-brand-soft: rgba(34, 211, 238, 0.16);
+
+  --vp-c-bg: #0d1117;
+  --vp-c-bg-alt: #161b22;
+  --vp-c-bg-soft: #1c2128;
+  --vp-c-bg-elv: #21262d;
+
+  --vp-c-border: #30363d;
+  --vp-c-divider: #21262d;
+  --vp-c-gutter: #21262d;
+}
+
+/* ===== 首页特效（仅深色） ===== */
+/* ::before 是 positioned 元素会盖在文字上，故 .container 抬一层让光晕沉底 */
+.dark .VPHero {
+  position: relative;
+}
+.dark .VPHero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 55% 50% at 50% 42%, rgba(34, 211, 238, 0.14), transparent);
+  pointer-events: none;
+}
+.dark .VPHero .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* feature 卡：hover 时边框泛青微光；border 常驻避免 hover 抖动 */
+.dark .VPFeature {
+  border: 1px solid var(--vp-c-divider);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.dark .VPFeature:hover {
+  border-color: var(--vp-c-brand-2);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.12);
+}

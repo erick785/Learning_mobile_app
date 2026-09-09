@@ -158,6 +158,11 @@ docs/04-testing/devices-and-emulators/     ← 章节文件夹，与章同名
   构建全绿但浏览器里搜索直接抛 `ReferenceError`。正则已内联，别再提取出去
 - **`.gitignore` 里的 `**/` 前缀不是笔误**：改回 `docs/` 前缀会让根目录误跑
   vitepress 产生的缓存重新污染 `git status`
+- **主题定制全在 `docs/.vitepress/theme/`**：纯 CSS 变量覆盖（青蓝霓虹 +
+  深蓝黑底），未动默认主题结构、无自定义组件。回退 = 删 `theme/` 目录 +
+  移除 `config.ts` 的 `appearance: 'dark'`。另外注意：改完样式重建后
+  **必须重启 `docs:preview`**——vite preview 启动时缓存文件清单，
+  光重建不重启会让新 hash 的 CSS 404、页面裸奔
 
 ## 部署
 
