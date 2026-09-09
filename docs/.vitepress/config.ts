@@ -56,10 +56,18 @@ export default defineConfig({
   title: '移动端开发学习笔记',
   description: '按主题组织的移动端开发手册：基础、客户端开发、工程化、测试、安全',
   lastUpdated: true,
-  // 默认深色（霓虹主题配套），读者仍可用导航栏按钮切浅色；删 theme/ 目录时一并删掉本行
+  // 默认深色（霓虹主题配套），读者仍可用导航栏按钮切浅色。
+  // 回退默认主题 = 删 theme/ 目录 + 本行 + head 里的 vp-style-theme 内联脚本
   appearance: 'dark',
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }],
+    // 水合前恢复深色配色风格（neon/cyberpunk），防先渲染默认青蓝再跳变。
+    // 切换逻辑在 theme/index.ts，两者共用 'vp-style-theme' 这个 key
+    [
+      'script',
+      {},
+      "(()=>{const t=localStorage.getItem('vp-style-theme');if(t)document.documentElement.dataset.theme=t})()",
+    ],
   ],
   themeConfig: {
     nav: [
